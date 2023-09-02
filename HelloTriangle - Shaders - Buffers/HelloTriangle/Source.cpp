@@ -81,15 +81,11 @@ int main()
 
 	// Gerando um buffer simples, com a geometria de um triângulo
 	GLuint VAO = setupGeometry();
-	
-
-	// Enviando a cor desejada (vec4) para o fragment shader
-	// Utilizamos a variáveis do tipo uniform em GLSL para armazenar esse tipo de info
-	// que não está nos buffers
-	GLint colorLoc = glGetUniformLocation(shader.ID, "inputColor");
-	
+		
 	shader.Use();
 	
+	glLineWidth(10);
+	glPointSize(20);
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -101,16 +97,22 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glLineWidth(10);
-		glPointSize(20);
-
 		glBindVertexArray(VAO); //Conectando ao buffer de geometria
 
-		glUniform4f(colorLoc, 0.0f, 0.0f, 1.0f, 1.0f); //enviando cor para variável uniform inputColor
+		shader.setVec4("inputColor", 0.0f, 0.0f, 1.0f, 1.0f); //enviando cor para variável uniform inputColor
 
 		// Chamada de desenho - drawcall
 		// Poligono Preenchido - GL_TRIANGLES
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		// Contorno - GL_LINE_LOOP
+		shader.setVec4("inputColor", 1.0f, 1.0f, 0.0f, 1.0f); //enviando cor para variável uniform inputColor
+		glDrawArrays(GL_LINE_LOOP, 0, 3);
+		glDrawArrays(GL_LINE_LOOP, 3, 3);
+
+		// Contorno - GL_LINE_POINTS
+		shader.setVec4("inputColor", 1.0f, 0.0f, 1.0f, 1.0f); //enviando cor para variável uniform inputColor
+		glDrawArrays(GL_POINTS, 0, 6);
 
 		glBindVertexArray(0); //Desconectando o buffer de geometria
 
@@ -146,10 +148,13 @@ int setupGeometry()
 	// Pode ser arazenado em um VBO único ou em VBOs separados
 	GLfloat vertices[] = {
 		//x   y     z
-		-0.5, -0.5, 0.0, //v0
-		 0.5, -0.5, 0.0, //v1
- 		 0.0,  0.5, 0.0, //v2 
+		-0.5,  0.5, 0.0, //v0
+		 0.0,  0.0, 0.0, //v1
+ 		 0.5,  0.5, 0.0, //v2 
 
+		 0.0,  0.0, 0.0, //v3
+		-0.5, -0.5, 0.0, //v4
+		 0.5, -0.5, 0.0  //v5
 	};
 
 	GLuint VBO, VAO;
