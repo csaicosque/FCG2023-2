@@ -29,6 +29,8 @@ using namespace std;
 
 #include "Shader.h"
 
+#include "Sprite.h"
+
 
 // Protótipo da função de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -40,6 +42,8 @@ int setupTexture(string filePath, int &width, int &height);
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 800, HEIGHT = 600;
+
+Sprite character;
 
 // Função MAIN
 int main()
@@ -85,11 +89,26 @@ int main()
 	Shader shader("../shaders/HelloTriangle.vs", "../shaders/HelloTriangle.fs");
 
 	// Gerando um buffer simples, com a geometria de um triângulo
-	GLuint VAO = setupSprite();
 
 	int sprWidth, sprHeight;
 	GLuint texID = setupTexture("../../textures/characters/PNG/Knight/Idle/Idle1.png",sprWidth,sprHeight);
 		
+	
+	character.initialize();
+	character.setTexID(texID);
+	character.setPosition(glm::vec3(100, 150, 0));
+	character.setDimensions(glm::vec3(sprWidth, sprHeight, 1.0));
+	character.setShader(&shader);
+
+	texID = setupTexture("../../textures/backgrounds/PNG/Postapocalypce1/Bright/postapocalypse1.png", sprWidth, sprHeight);
+	
+	Sprite background;
+	background.initialize();
+	background.setTexID(texID);
+	background.setPosition(glm::vec3(400, 300, 0));
+	background.setDimensions(glm::vec3(sprWidth/2, sprHeight/2, 1.0));
+	background.setShader(&shader);
+	
 	shader.Use();
 
 	glm::mat4 projection = glm::mat4(1);
@@ -100,8 +119,7 @@ int main()
 	glPointSize(20);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texID);
-
+	
 
 	shader.setInt("texbuffer", 0);
 
@@ -132,33 +150,20 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glBindVertexArray(VAO); //Conectando ao buffer de geometria
+		//FUNDO -----------------------------------------------
+		background.update();
+		background.draw();
 
-		float angle = (float)glfwGetTime();
-
-		glm::mat4 model = glm::mat4(1); //matriz identidade
-		model = glm::translate(model, glm::vec3(400.0, 300.0, 0.0));
-		//model = glm::rotate(model, /*glm::radians(45.0f)*/angle, glm::vec3(0.0, 0.0, 1.0));
-		model = glm::scale(model, glm::vec3(sprWidth, sprHeight, 1.0));
-
-		shader.setMat4("model", glm::value_ptr(model));
-
-
-
-		// Chamada de desenho - drawcall
-		// Poligono Preenchido - GL_TRIANGLES
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-		//glDrawArrays(GL_POINTS, 0, 6);
-
-
-		glBindVertexArray(0); //Desconectando o buffer de geometria
+		//PERSONAGEM -----------------------------------------------
+		character.update();
+		character.draw();
+		//-----------------------------------------------
+		
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
 	}
-	// Pede pra OpenGL desalocar os buffers
-	glDeleteVertexArrays(1, &VAO);
+	
 	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
 	glfwTerminate();
 	return 0;
@@ -171,6 +176,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+
+	if ( key == GLFW_KEY_A || key == GLFW_KEY_LEFT )
+	{
+		character.moveLeft();
+	}
+	if (key == GLFW_KEY_D || key == GLFW_KEY_RIGHT)
+	{
+		character.moveRight();
+	}
 }
 
 // Esta função está bastante harcoded - objetivo é criar os buffers que armazenam a 
