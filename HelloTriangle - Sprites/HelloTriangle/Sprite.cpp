@@ -1,7 +1,14 @@
 #include "Sprite.h"
 
-void Sprite::initialize()
+void Sprite::initialize(int nAnimations, int nFrames)
 {
+	this->nAnimations = nAnimations;
+	this->nFrames = nFrames;
+
+	ds = 1.0 / (float)nFrames;
+	dt = 1.0 / (float)nAnimations;
+	
+
 	// Aqui setamos as coordenadas x, y e z do triângulo e as armazenamos de forma
 	// sequencial, já visando mandar para o VBO (Vertex Buffer Objects)
 	// Cada atributo do vértice (coordenada, cores, coordenadas de textura, normal, etc)
@@ -9,14 +16,14 @@ void Sprite::initialize()
 	GLfloat vertices[] = {
 		//Primeiro triangulo
 		//x    y     z     r     g    b   s    t
-		-0.5,  0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, //v0
+		-0.5,  0.5, 0.0, 1.0, 0.0, 0.0, 0.0, dt, //v0
 		-0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, //v1
-		 0.5,  0.5, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, //v2 
+		 0.5,  0.5, 0.0, 0.0, 0.0, 1.0, ds,  dt, //v2 
 		 //Segundo triangulo
 		//x    y     z     r     g    b   s    t
 		-0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, //v1
-		 0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, //v3
-		 0.5,  0.5, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0  //v2 
+		 0.5, -0.5, 0.0, 0.0, 1.0, 0.0, ds,  0.0, //v3
+		 0.5,  0.5, 0.0, 0.0, 0.0, 1.0, ds,  dt  //v2 
 	};
 
 	GLuint VBO;
@@ -62,6 +69,11 @@ void Sprite::initialize()
 
 	//Inicializando outros atributos
 	vel = 3.0;
+	iAnimation = 0;
+	iFrame = 0;
+	state = IDLE;
+	
+
 }
 
 void Sprite::update()
@@ -70,8 +82,30 @@ void Sprite::update()
 	glm::mat4 model = glm::mat4(1); //matriz identidade
 	model = glm::translate(model, position);
 	//model = glm::rotate(model, /*glm::radians(45.0f)*/angle, glm::vec3(0.0, 0.0, 1.0));
-	model = glm::scale(model, dimensions);
+	
+	
+	if (state == WALKING_LEFT)
+	{
+		scaleFactor.x = -dimensions.x;
+	}
+	if (state == WALKING_RIGHT)
+	{
+		scaleFactor.x = dimensions.x;
+	}
+	model = glm::scale(model, scaleFactor);
+	
+	
 	shader->setMat4("model", glm::value_ptr(model));
+
+	//Atualizando o deslocamento das coordenadas de textura baseado nos índices de frame e animação
+	shader->setVec2("offset", iFrame * ds, iAnimation * dt);
+
+	//Para tocar as animações de forma cíclica
+	if (state != IDLE)
+	{
+		iFrame = (iFrame + 1) % nFrames;
+	}
+
 }
 
 void Sprite::draw()

@@ -30,6 +30,7 @@ using namespace std;
 #include "Shader.h"
 
 #include "Sprite.h"
+#include "Timer.h"
 
 
 // Protótipo da função de callback de teclado
@@ -91,16 +92,16 @@ int main()
 	// Gerando um buffer simples, com a geometria de um triângulo
 
 	int sprWidth, sprHeight;
-	GLuint texID = setupTexture("../../textures/characters/PNG/Knight/Idle/Idle1.png",sprWidth,sprHeight);
+	GLuint texID = setupTexture("../../textures/characters/PNG/Knight/walk1.png",sprWidth,sprHeight);
 		
 	
-	character.initialize();
+	character.initialize(1,6);
 	character.setTexID(texID);
 	character.setPosition(glm::vec3(100, 150, 0));
 	character.setDimensions(glm::vec3(sprWidth, sprHeight, 1.0));
 	character.setShader(&shader);
 
-	texID = setupTexture("../../textures/backgrounds/PNG/Postapocalypce1/Bright/postapocalypse1.png", sprWidth, sprHeight);
+	texID = setupTexture("../../textures/backgrounds/PNG/Postapocalypce1/Pale/postapocalypse1.png", sprWidth, sprHeight);
 	
 	Sprite background;
 	background.initialize();
@@ -133,9 +134,13 @@ int main()
 	glDepthFunc(GL_ALWAYS);
 
 
+	Timer timer;
+
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
 	{
+		timer.start();
+
 		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
 		glfwPollEvents();
 
@@ -159,6 +164,12 @@ int main()
 		character.draw();
 		//-----------------------------------------------
 		
+		timer.finish();
+		double waitingTime = timer.calcWaitingTime(24, timer.getElapsedTimeMs());
+		if (waitingTime)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)waitingTime));
+		}
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
@@ -179,11 +190,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	if ( key == GLFW_KEY_A || key == GLFW_KEY_LEFT )
 	{
+		character.setState(WALKING_LEFT);
 		character.moveLeft();
 	}
 	if (key == GLFW_KEY_D || key == GLFW_KEY_RIGHT)
 	{
+		character.setState(WALKING_RIGHT);
 		character.moveRight();
+	}
+	if (action == GLFW_RELEASE)
+	{
+		character.setState(IDLE);
 	}
 }
 

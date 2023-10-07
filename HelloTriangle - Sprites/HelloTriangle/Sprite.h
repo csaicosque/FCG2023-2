@@ -7,6 +7,8 @@
 
 #include "Shader.h"
 
+enum states {IDLE, WALKING_LEFT, WALKING_RIGHT};
+
 class Sprite
 {
 public:
@@ -19,10 +21,11 @@ public:
 	//Métodos setters de alguns atributos
 	inline void setTexID(GLuint texID) { this->texID = texID; }
 	inline void setPosition(glm::vec3 position) { this->position = position; }
-	inline void setDimensions(glm::vec3 dimensions) { this->dimensions = dimensions; }
+	inline void setDimensions(glm::vec3 dimensions) { this->dimensions.x = dimensions.x / nFrames; this->dimensions.y = dimensions.y / nAnimations; scaleFactor = this->dimensions; }
 	inline void setShader(Shader *shader) { this->shader = shader; }
+	inline void setState(int state) { this->state = state; }
 
-	void initialize();
+	void initialize(int nAnimations = 1, int nFrames = 1);
 	void update();
 	void draw();
 
@@ -43,7 +46,12 @@ protected:
 	//Armazena o endereço do Shader
 	Shader* shader;
 	
+	int nAnimations, nFrames;
+	int iAnimation, iFrame;
+	float ds, dt;
 
+	int state;
+	glm::vec3 scaleFactor;
 
 };
 

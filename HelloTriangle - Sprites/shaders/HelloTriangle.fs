@@ -7,7 +7,9 @@ in vec2 texcoord;
 
 uniform sampler2D texbuffer;
 
+uniform vec2 offset;
+
 void main()
 {
-	color = texture(texbuffer,texcoord);//vec4(vertexColor, 1.0);
+	color = texture(texbuffer,texcoord + offset);//vec4(vertexColor, 1.0);
 }
