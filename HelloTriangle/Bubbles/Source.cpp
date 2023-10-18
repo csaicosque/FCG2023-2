@@ -19,13 +19,9 @@ const GLuint width = 1080, height = 1920;
 const float squareSize = 0.02f;
 
 // Velocidade do movimento vertical (queda) do quadrado
-const float fallSpeed = 0.02f;
+float fallSpeed = 0.001f;
 
 float moveSpeed = 0.01f;  // Ajuste a velocidade conforme necessário
-
-int maxAttempts = 100;
-
-bool positionFound = false;
 
 //-------------------------------------------------------------------
 
@@ -45,7 +41,7 @@ int main() {
     }
 
     // Cria a janela
-    GLFWwindow* window = glfwCreateWindow(width, height, "Quadrado em Movimento", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(width, height, "Bubbles", nullptr, nullptr);
 
     // Caso haja erro na janela GLFW
     if (!window) {
@@ -65,11 +61,19 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // Coordenadas do quadrado
-    vector<float> squareVertices = {
+    //TODO: Vector de vectores
+    vector<float> squareVertices2 = {
         -squareSize, -squareSize, 0.0f,
         squareSize, -squareSize, 0.0f,
         squareSize, squareSize, 0.0f,
         -squareSize, squareSize, 0.0f
+    };
+
+    vector<float> squares = {
+            -squareSize, -squareSize, 0.0f,
+            squareSize, -squareSize, 0.0f,
+            squareSize, squareSize, 0.0f,
+            -squareSize, squareSize, 0.0f,
     };
 
     // Shaders
@@ -136,8 +140,10 @@ int main() {
     // Vincula o VAO e o VBO
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // Envia os dados do array para o buffer
-    glBufferData(GL_ARRAY_BUFFER, squareVertices.size() * sizeof(float), squareVertices.data(), GL_STATIC_DRAW);
+
+    //glBufferData(GL_ARRAY_BUFFER, squareVertices.size() * sizeof(float), squareVertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
+
     // Atributo do layout
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
@@ -148,12 +154,6 @@ int main() {
     float squareX = 0.0f;
     float squareY = 1.0f;
 
-    //variavel com dimensoes da tela
-    const float leftBound = -1.0f;
-    const float rightBound = 1.0f;
-    const float topBound = 1.0f;
-    const float bottomBound = -1.0f;
-
     // Inicializa a semente de números aleatórios
     srand(time(nullptr));
 
@@ -162,31 +162,21 @@ int main() {
         // Checa os inputs
         glfwPollEvents();
 
-        // Atualize a posição horizontal do quadrado
-        squareX += moveSpeed;
-
-        // Verifique se o quadrado atingiu a borda direita da tela
-        if (squareX + squareSize > rightBound) {
-            // Restrinja o quadrado à borda direita da tela e inverta a direção
-            squareX = rightBound - squareSize;
-            moveSpeed = -moveSpeed; // Inverta a direção
-        }
-
-        // Verifique se o quadrado atingiu a borda esquerda da tela
-        if (squareX - squareSize < leftBound) {
-            // Restrinja o quadrado à borda esquerda da tela e inverta a direção
-            squareX = leftBound + squareSize;
-            moveSpeed = -moveSpeed; // Inverta a direção
-        }
-
-        // Atualize a posição vertical do quadrado (queda)
+        // Atualiza a posição vertical do quadrado (queda)
         squareY -= fallSpeed;
 
-        // Verifique se o quadrado atingiu a parte inferior da tela
-        if (squareY - squareSize < bottomBound) {
-            // Restrinja o quadrado à parte inferior da tela e faça ele pular
-            squareY = bottomBound + squareSize;
+        // Checa se o quadrado atingiu a parte inferior da tela
+        if (squareY - squareSize < -1.0f) {
+            // Gera uma nova posição X aleatória, seja à esquerda ou à direita
+            squareY = 1.0f; // Volta para o topo da tela
+            squareX = -1.0f + (rand() / float(RAND_MAX)) * 2.0f;
+            
+            //TODO: Colocar um maximo de velocidade
+            fallSpeed += 0.0001f;
         }
+
+        //PLAYER
+
 
 
         // Limpa o buffer de cor
@@ -196,20 +186,22 @@ int main() {
         // Seta o shader
         glUseProgram(shaderProgram);
 
-        // Atualiza a posição do quadrado no VBO
-        squareVertices[1] = squareY - squareSize;
-        squareVertices[4] = squareY - squareSize;
-        squareVertices[7] = squareY + squareSize;
-        squareVertices[10] = squareY + squareSize;
+        // Atualiza a posição do quadrado1 no VBO
+        squares[1] = squareY - squareSize;
+        squares[4] = squareY - squareSize;
+        squares[7] = squareY + squareSize;
+        squares[10] = squareY + squareSize;
 
-        // Atualiza as coordenadas X dos vértices do quadrado
-        squareVertices[0] = squareX - squareSize;
-        squareVertices[3] = squareX + squareSize;
-        squareVertices[6] = squareX + squareSize;
-        squareVertices[9] = squareX - squareSize;
+        // Atualiza as coordenadas X dos vértices do quadrado1
+        squares[0] = squareX - squareSize;
+        squares[3] = squareX + squareSize;
+        squares[6] = squareX + squareSize;
+        squares[9] = squareX - squareSize;
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, squareVertices.size() * sizeof(float), squareVertices.data());
+
+        // Envia os dados do array para o buffer
+        glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
 
         // Vincula o buffer de geometria
         glBindVertexArray(VAO);
