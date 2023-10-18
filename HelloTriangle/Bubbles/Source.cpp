@@ -18,10 +18,11 @@ const GLuint width = 1080, height = 1920;
 // Tamanho do quadrado
 const float squareSize = 0.02f;
 
+//tamanho player
+const float playerSize = 0.05;
+
 // Velocidade do movimento vertical (queda) do quadrado
 float fallSpeed = 0.001f;
-
-float moveSpeed = 0.01f;  // Ajuste a velocidade conforme necessário
 
 //-------------------------------------------------------------------
 
@@ -60,20 +61,20 @@ int main() {
     // Notificação do framebuffer de redimensionamento de janela
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // Coordenadas do quadrado
-    //TODO: Vector de vectores
-    vector<float> squareVertices2 = {
-        -squareSize, -squareSize, 0.0f,
-        squareSize, -squareSize, 0.0f,
-        squareSize, squareSize, 0.0f,
-        -squareSize, squareSize, 0.0f
-    };
+    // Coordenadas de vertice do quadrado e do player
 
     vector<float> squares = {
-            -squareSize, -squareSize, 0.0f,
-            squareSize, -squareSize, 0.0f,
-            squareSize, squareSize, 0.0f,
-            -squareSize, squareSize, 0.0f,
+        -squareSize, -squareSize, 0.0f,
+         squareSize, -squareSize, 0.0f,
+         squareSize,  squareSize, 0.0f,
+        -squareSize,  squareSize, 0.0f,
+    };
+
+    vector<float> player = {
+        -playerSize, -playerSize, 0.0f,
+         playerSize, -playerSize, 0.0f,
+         playerSize,  playerSize, 0.0f,
+        -playerSize,  playerSize, 0.0f,
     };
 
     // Shaders
@@ -133,18 +134,40 @@ int main() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // Identificador do VAO e VBO
-    unsigned int VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // Vincula o VAO e o VBO
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //// Identificador do VAO e VBO
+    //unsigned int VAO, VBO;
+    //glGenVertexArrays(1, &VAO);
+    //glGenBuffers(1, &VBO);
+    //// Vincula o VAO e o VBO
+    //glBindVertexArray(VAO);
+    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-    //glBufferData(GL_ARRAY_BUFFER, squareVertices.size() * sizeof(float), squareVertices.data(), GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
+    ////glBufferData(GL_ARRAY_BUFFER, squareVertices.size() * sizeof(float), squareVertices.data(), GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
 
-    // Atributo do layout
+    //// Atributo do layout
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    //glEnableVertexAttribArray(0);
+
+        //Identificador do VAO1 e VBO1
+    unsigned int VAO1, VBO1;
+    glGenVertexArrays(1, &VAO1);
+    glGenBuffers(1, &VBO1);
+    //vincula o VAO e o VBO
+    glBindVertexArray(VAO1);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+    //envia os dados do array para o buffer
+    glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);    //atributo do layout
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+
+    //Configurações do VAO2 e VBO2
+    unsigned int VAO2, VBO2;
+    glGenVertexArrays(1, &VAO2);
+    glGenBuffers(1, &VBO2);
+    glBindVertexArray(VAO2);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);    
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
@@ -153,6 +176,10 @@ int main() {
     // Inicializa a posição do quadrado
     float squareX = 0.0f;
     float squareY = 1.0f;
+
+    //Inicia posição do jogador
+    float playerX = 0.0f;
+    float playerY = -1.0f;
 
     // Inicializa a semente de números aleatórios
     srand(time(nullptr));
@@ -164,6 +191,8 @@ int main() {
 
         // Atualiza a posição vertical do quadrado (queda)
         squareY -= fallSpeed;
+
+
 
         // Checa se o quadrado atingiu a parte inferior da tela
         if (squareY - squareSize < -1.0f) {
@@ -198,13 +227,29 @@ int main() {
         squares[6] = squareX + squareSize;
         squares[9] = squareX - squareSize;
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        //glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+        //glBindBuffer(GL_ARRAY_BUFFER, VBO2);
 
-        // Envia os dados do array para o buffer
+        //// Envia os dados do array para o buffer
+        //glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
+        //glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);
+
+
+        //// Vincula o buffer de geometria
+        //glBindVertexArray(VAO1);
+        //glBindVertexArray(VAO2);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO1);
         glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
 
-        // Vincula o buffer de geometria
-        glBindVertexArray(VAO);
+        glBindVertexArray(VAO1);
+        // Chamada para renderizar o quadrado
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+        glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);
+
+        glBindVertexArray(VAO2);
         // Chamada para renderizar o quadrado
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
@@ -213,8 +258,10 @@ int main() {
     }
 
     // Deleta os buffers
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO1);
+    glDeleteBuffers(1, &VBO1);
+    glDeleteVertexArrays(1, &VAO2);
+    glDeleteBuffers(1, &VBO2);
     glDeleteProgram(shaderProgram);
 
     // Finaliza a GLFW
