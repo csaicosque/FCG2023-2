@@ -84,6 +84,7 @@ int main() {
         "{\n"
         "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
         "}\0";
+
     const char* fragmentShaderSource = "#version 330 core\n"
         "out vec4 FragColor;\n"
         "void main()\n"
@@ -91,8 +92,16 @@ int main() {
         "    FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);\n"
         "}\0";
 
+    const char* playerFragmentShaderSource = "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "void main()\n"
+        "{\n"
+        "    FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n"
+        "}\0";
+
     // Declara variáveis e uma matriz
     unsigned int vertexShader, fragmentShader, shaderProgram;
+    unsigned int fragmentPlayer = 0;
     int success;
     char infoLog[512];
 
@@ -118,10 +127,22 @@ int main() {
         std::cerr << "Erro na compilação do Fragment Shader:\n" << infoLog << std::endl;
     }
 
+    // Cria e compila o fragment shader do player
+    fragmentPlayer = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentPlayer, 1, &playerFragmentShaderSource, nullptr);
+    glCompileShader(fragmentPlayer);
+    // Checa se houve erro de compilação
+    glGetShaderiv(fragmentPlayer, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragmentPlayer, 512, nullptr, infoLog);
+        std::cerr << "Erro na compilação do Fragment Shader:\n" << infoLog << std::endl;
+    }
+
     // Linka os shaders
     shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
+    glAttachShader(shaderProgram, fragmentPlayer);
     glLinkProgram(shaderProgram);
     // Checa os erros do link dos shaders
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
@@ -133,6 +154,7 @@ int main() {
     // Deleta os shaders
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    glDeleteShader(fragmentPlayer);
 
     //// Identificador do VAO e VBO
     //unsigned int VAO, VBO;
