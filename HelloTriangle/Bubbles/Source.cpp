@@ -9,19 +9,35 @@ using namespace std;
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+//----------------------------Declarando-variáveis-------------------------------------------
+
 const GLuint width = 1080, height = 1920;
 const float windowWidth = static_cast<float>(width) / static_cast<float>(height) * 2.0f;
 const float squareSize = 0.02f;
-const float playerSize = 0.05;
+const float playerSize = 0.05f;
 const float maxFallSpeed = 0.05f;
 float fallSpeed = 0.001f;
+float playerX = 0.0f;
+float playerY = -0.85f; 
+float playerSpeed = 0.002f;
+float squareX = 0.0f;
+float squareY = 1.0f;
 
 int playerPoints = 0;   // Contador de pontos para colisões com o jogador
 int bottomPoints = 0;   // Contador de pontos para colisões com a borda inferior
 
+bool CheckCollision(float playerX, float playerY, float  squareX, float squareY, float playerSize, float squareSize) {
+    return(playerX + playerSize >= squareX - squareSize && playerX - playerSize <= squareX + squareSize) &&
+        (playerY + playerSize >= squareY - squareSize && playerY - playerSize <= squareY + squareSize);
+}
+
+//---------------------------------------Chamada-função-callback-window-----------------------------
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
+
+//---------------------------------------Função-
 
 int main() {
     if (!glfwInit()) {
@@ -141,65 +157,89 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
-    float playerX = 0.0f;
-    float playerY = -1.0f; // Atualizado para -1.0f
-    float playerSpeed = 0.002f;
-    float squareX = 0.0f;
-    float squareY = 1.0f;
-
-    bool maxSpeedReached = false; // Variável para rastrear se a velocidade máxima foi atingida
     std::vector<std::pair<float, float>> squaresData; // Armazena a posição e a velocidade de cada quadrado
 
     srand(time(nullptr));
+
+    //---------------------------------------Loop-Principal------------------------------------------------------------
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         squareY -= fallSpeed;
 
-        if (squareY - squareSize < -1.0f) {
+        //--------------------Loop-formação-square------------------------------------------
+
+       /* bool CheckCollision(float playerX, float playerY, float  squareX, float squareY, float playerSize, float squareSize) {
+            return(playerX + playerSize >= squareX - squareSize && playerX - playerSize <= squareX + squareSize) &&
+                  (playerY + playerSize >= squareY - squareSize && playerY - playerSize <= squareY + squareSize);
+        }*/
+
+        //------------------------Loop-colisões-----------------------------
+        // Calcula os limites do square
+        float squareLeft = squareSize;
+        float squareRight = squareSize;
+        float squareTop = squareSize + 1.0f;
+        float squareBottom = squareSize + 1.0f;
+
+        // Calcula o limite superior do player
+        float playerLeft = playerSize;
+        float playerRight = playerSize;
+        float playerTop = playerSize + 1.0f;
+        float playerBottom = playerSize + 1.0f;;
+
+        // Verifica se houve colisão
+        if (CheckCollision(playerX,playerY, squareX, squareY, playerSize, squareSize)) {
+            // Colisão detectada, você pode adicionar sua lógica de resposta aqui
+            playerPoints += 1;
+            std::cout << "Colisão com quadrado detectada! Pontos do jogador: " << playerPoints << std::endl;
+
             squareY = 1.0f;
-            squareX = -1.0f + (rand() / static_cast<float>(RAND_MAX)) * 2.0f;
-
+            squareX = -1.0f + (rand() / float(RAND_MAX)) * 2.0f;
             squareY += 0.00001f;
-            // Verificar colisões
-            for (const auto& squareData : squaresData) {
-                const float& squareY = squareData.first;
-                const float& squareSpeed = squareData.second;
+        } else if (squareY - squareSize < -1.0f) { // Verifica se houve colisão com a borda inferior
+            // Colisão com a borda inferior detectada
+            bottomPoints += 1;
+            std::cout << "Colisão com a borda inferior! Pontos da borda inferior: " << bottomPoints << std::endl;
 
-                // Calcula os limites dos quadrados
-                float squareLeft = squareX - squareSize;
-                float squareRight = squareX + squareSize;
-                float squareTop = squareY + squareSize;
-                float squareBottom = squareY - squareSize;
-
-                // Calcula os limites do jogador
-                float playerLeft = playerX - playerSize;
-                float playerRight = playerX + playerSize;
-                float playerTop = playerY + playerSize;
-                float playerBottom = playerY - playerSize;
-
-                // Verifica se houve colisão
-                if (playerRight > squareLeft && playerLeft < squareRight &&
-                    playerTop > squareBottom && playerBottom < squareTop) {
-                    // Colisão detectada, você pode adicionar sua lógica de resposta aqui
-                    playerPoints++;
-                    std::cout << "Colisão com quadrado detectada! Pontos do jogador: " << playerPoints << std::endl;
-                }
-                // Verifica se houve colisão com a borda inferior
-                if (squareY - squareSize < -1.0f) {
-                    // Colisão com a borda inferior detectada
-                    bottomPoints++;
-                    std::cout << "Colisão com a borda inferior! Pontos da borda inferior: " << bottomPoints << std::endl;
-                }
-            }
+            squareY = 1.0f;
+            squareX = -1.0f + (rand() / float(RAND_MAX)) * 2.0f;
+            squareY += 0.00001f;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        //------------------------Colissões-com-a-janela-----------------------------------------
+
+        // Verifique a colisão com as bordas da tela para o jogador
+        if (playerX - playerSize < -1.0f) {
+            // Colisão com a borda esquerda da tela
+            playerX = -1.0f + playerSize; // Reverta a posição
+        }
+
+        if (playerX + playerSize > 1.0f) {
+            // Colisão com a borda direita da tela
+            playerX = 1.0f - playerSize; // Reverta a posição
+        }
+
+        // Verifique a colisão com as bordas da tela para o "square"
+        if (squareX - squareSize < -1.0f) {
+            // Colisão com a borda esquerda da tela
+            squareX = -1.0f + squareSize; // Reverta a posição
+        }
+
+        if (squareX + squareSize > 1.0f) {
+            // Colisão com a borda direita da tela
+            squareX = 1.0f - squareSize; // Reverta a posição
+        }
+
+        //--------------------------Movimentação-player---------------------------------
+
+        if ((glfwGetKey(window, GLFW_KEY_D)     == GLFW_PRESS) || 
+            (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)) {
             playerX += playerSpeed; // Move o jogador para a direita
         }
 
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        if ((glfwGetKey(window, GLFW_KEY_A)    == GLFW_PRESS) ||
+            (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)) {
             playerX -= playerSpeed; // Move o jogador para a esquerda
         }
 
@@ -227,32 +267,6 @@ int main() {
         squares[3] = squareX + squareSize;
         squares[6] = squareX + squareSize;
         squares[9] = squareX - squareSize;
-
-        // Verifique a colisão com as bordas da tela para o jogador
-        if (playerX - playerSize < -1.0f) {
-            // Colisão com a borda esquerda da tela
-            playerX = -1.0f + playerSize; // Reverta a posição
-        }
-
-        if (playerX + playerSize > 1.0f) {
-            // Colisão com a borda direita da tela
-            playerX = 1.0f - playerSize; // Reverta a posição
-        }
-
-        // Verifique a colisão com as bordas da tela para o "square"
-        if (squareX - squareSize < -1.0f) {
-            // Colisão com a borda esquerda da tela
-            squareX = -1.0f + squareSize; // Reverta a posição
-        }
-
-        if (squareX + squareSize > 1.0f) {
-            // Colisão com a borda direita da tela
-            squareX = 1.0f - squareSize; // Reverta a posição
-        }
-
-        
-
-       
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO1);
         glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
