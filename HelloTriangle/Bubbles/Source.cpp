@@ -6,78 +6,60 @@
 
 using namespace std;
 
-// GLAD
 #include <glad/glad.h>
-
-// GLFW
 #include <GLFW/glfw3.h>
 
-// Dimensões da janela
 const GLuint width = 1080, height = 1920;
-
-// Tamanho do quadrado
+const float windowWidth = static_cast<float>(width) / static_cast<float>(height) * 2.0f;
 const float squareSize = 0.02f;
-
-//tamanho player
 const float playerSize = 0.05;
-
-// Velocidade do movimento vertical (queda) do quadrado
+const float maxFallSpeed = 0.05f;
 float fallSpeed = 0.001f;
 
-//-------------------------------------------------------------------
+int playerPoints = 0;   // Contador de pontos para colisões com o jogador
+int bottomPoints = 0;   // Contador de pontos para colisões com a borda inferior
 
-// Cria a janela GLFW
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-//-------------------------------------------------------------------
-
-//função principal
 int main() {
-    // Inicialização do GLFW
     if (!glfwInit()) {
         std::cerr << "Erro ao inicializar o GLFW" << std::endl;
         return -1;
     }
 
-    // Cria a janela
     GLFWwindow* window = glfwCreateWindow(width, height, "Bubbles", nullptr, nullptr);
 
-    // Caso haja erro na janela GLFW
     if (!window) {
         std::cerr << "Erro ao criar a janela GLFW" << std::endl;
         glfwTerminate();
         return -1;
     }
+
     glfwMakeContextCurrent(window);
 
-    // Caso haja erro no GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Erro ao inicializar o glad" << std::endl;
         return -1;
     }
 
-    // Notificação do framebuffer de redimensionamento de janela
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    // Coordenadas de vertice do quadrado e do player
 
     vector<float> squares = {
         -squareSize, -squareSize, 0.0f,
-         squareSize, -squareSize, 0.0f,
-         squareSize,  squareSize, 0.0f,
-        -squareSize,  squareSize, 0.0f,
+        squareSize, -squareSize, 0.0f,
+        squareSize, squareSize, 0.0f,
+        -squareSize, squareSize, 0.0f,
     };
 
     vector<float> player = {
         -playerSize, -playerSize, 0.0f,
-         playerSize, -playerSize, 0.0f,
-         playerSize,  playerSize, 0.0f,
-        -playerSize,  playerSize, 0.0f,
+        playerSize, -playerSize, 0.0f,
+        playerSize, playerSize, 0.0f,
+        -playerSize, playerSize, 0.0f,
     };
 
-    // Shaders
     const char* vertexShaderSource = "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;\n"
         "void main()\n"
@@ -85,208 +67,215 @@ int main() {
         "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
         "}\0";
 
-    const char* fragmentShaderSource = "#version 330 core\n"
+    const char* fragmentShaderRedSource = "#version 330 core\n"
         "out vec4 FragColor;\n"
         "void main()\n"
         "{\n"
         "    FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);\n"
         "}\0";
 
-    const char* playerFragmentShaderSource = "#version 330 core\n"
+    const char* fragmentShaderBlueSource = "#version 330 core\n"
         "out vec4 FragColor;\n"
         "void main()\n"
         "{\n"
         "    FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n"
         "}\0";
 
-    // Declara variáveis e uma matriz
-    unsigned int vertexShader, fragmentShader, shaderProgram;
-    unsigned int fragmentPlayer = 0;
+    unsigned int vertexShader, fragmentShaderRed, fragmentShaderBlue, shaderProgramRed, shaderProgramBlue;
     int success;
     char infoLog[512];
 
-    // Cria e compila o programa de shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
     glCompileShader(vertexShader);
-    // Checa se houve erro na compilação
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+
+    fragmentShaderRed = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShaderRed, 1, &fragmentShaderRedSource, nullptr);
+    glCompileShader(fragmentShaderRed);
+
+    fragmentShaderBlue = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShaderBlue, 1, &fragmentShaderBlueSource, nullptr);
+    glCompileShader(fragmentShaderBlue);
+
+    glGetShaderiv(fragmentShaderRed, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        std::cerr << "Erro na compilação do Vertex Shader:\n" << infoLog << std::endl;
+        glGetShaderInfoLog(fragmentShaderRed, 512, nullptr, infoLog);
+        std::cerr << "Erro na compilação do Fragment Shader Red:\n" << infoLog << std::endl;
     }
 
-    // Cria e compila o fragment shader
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
-    // Checa se houve erro de compilação
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(fragmentShaderBlue, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        std::cerr << "Erro na compilação do Fragment Shader:\n" << infoLog << std::endl;
+        glGetShaderInfoLog(fragmentShaderBlue, 512, nullptr, infoLog);
+        std::cerr << "Erro na compilação do Fragment Shader Blue:\n" << infoLog << std::endl;
     }
 
-    // Cria e compila o fragment shader do player
-    fragmentPlayer = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentPlayer, 1, &playerFragmentShaderSource, nullptr);
-    glCompileShader(fragmentPlayer);
-    // Checa se houve erro de compilação
-    glGetShaderiv(fragmentPlayer, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentPlayer, 512, nullptr, infoLog);
-        std::cerr << "Erro na compilação do Fragment Shader:\n" << infoLog << std::endl;
-    }
+    shaderProgramRed = glCreateProgram();
+    glAttachShader(shaderProgramRed, vertexShader);
+    glAttachShader(shaderProgramRed, fragmentShaderRed);
+    glLinkProgram(shaderProgramRed);
 
-    // Linka os shaders
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glAttachShader(shaderProgram, fragmentPlayer);
-    glLinkProgram(shaderProgram);
-    // Checa os erros do link dos shaders
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cerr << "Erro ao vincular o programa de shader:\n" << infoLog << std::endl;
-    }
+    shaderProgramBlue = glCreateProgram();
+    glAttachShader(shaderProgramBlue, vertexShader);
+    glAttachShader(shaderProgramBlue, fragmentShaderBlue);
+    glLinkProgram(shaderProgramBlue);
 
-    // Deleta os shaders
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-    glDeleteShader(fragmentPlayer);
+    glDeleteShader(fragmentShaderRed);
+    glDeleteShader(fragmentShaderBlue);
 
-    //// Identificador do VAO e VBO
-    //unsigned int VAO, VBO;
-    //glGenVertexArrays(1, &VAO);
-    //glGenBuffers(1, &VBO);
-    //// Vincula o VAO e o VBO
-    //glBindVertexArray(VAO);
-    //glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    ////glBufferData(GL_ARRAY_BUFFER, squareVertices.size() * sizeof(float), squareVertices.data(), GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
-
-    //// Atributo do layout
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-    //glEnableVertexAttribArray(0);
-
-        //Identificador do VAO1 e VBO1
     unsigned int VAO1, VBO1;
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
-    //vincula o VAO e o VBO
     glBindVertexArray(VAO1);
     glBindBuffer(GL_ARRAY_BUFFER, VBO1);
-    //envia os dados do array para o buffer
-    glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);    //atributo do layout
+    glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
-    //Configurações do VAO2 e VBO2
     unsigned int VAO2, VBO2;
     glGenVertexArrays(1, &VAO2);
     glGenBuffers(1, &VBO2);
     glBindVertexArray(VAO2);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);    
+    glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
-    //---------------------------------------------------
-
-    // Inicializa a posição do quadrado
+    float playerX = 0.0f;
+    float playerY = -1.0f; // Atualizado para -1.0f
+    float playerSpeed = 0.002f;
     float squareX = 0.0f;
     float squareY = 1.0f;
 
-    //Inicia posição do jogador
-    float playerX = 0.0f;
-    float playerY = -1.0f;
+    bool maxSpeedReached = false; // Variável para rastrear se a velocidade máxima foi atingida
+    std::vector<std::pair<float, float>> squaresData; // Armazena a posição e a velocidade de cada quadrado
 
-    // Inicializa a semente de números aleatórios
     srand(time(nullptr));
 
-    // Loop principal
     while (!glfwWindowShouldClose(window)) {
-        // Checa os inputs
         glfwPollEvents();
 
-        // Atualiza a posição vertical do quadrado (queda)
         squareY -= fallSpeed;
 
-
-
-        // Checa se o quadrado atingiu a parte inferior da tela
         if (squareY - squareSize < -1.0f) {
-            // Gera uma nova posição X aleatória, seja à esquerda ou à direita
-            squareY = 1.0f; // Volta para o topo da tela
-            squareX = -1.0f + (rand() / float(RAND_MAX)) * 2.0f;
-            
-            //TODO: Colocar um maximo de velocidade
-            fallSpeed += 0.0001f;
+            squareY = 1.0f;
+            squareX = -1.0f + (rand() / static_cast<float>(RAND_MAX)) * 2.0f;
+
+            squareY += 0.00001f;
+            // Verificar colisões
+            for (const auto& squareData : squaresData) {
+                const float& squareY = squareData.first;
+                const float& squareSpeed = squareData.second;
+
+                // Calcula os limites dos quadrados
+                float squareLeft = squareX - squareSize;
+                float squareRight = squareX + squareSize;
+                float squareTop = squareY + squareSize;
+                float squareBottom = squareY - squareSize;
+
+                // Calcula os limites do jogador
+                float playerLeft = playerX - playerSize;
+                float playerRight = playerX + playerSize;
+                float playerTop = playerY + playerSize;
+                float playerBottom = playerY - playerSize;
+
+                // Verifica se houve colisão
+                if (playerRight > squareLeft && playerLeft < squareRight &&
+                    playerTop > squareBottom && playerBottom < squareTop) {
+                    // Colisão detectada, você pode adicionar sua lógica de resposta aqui
+                    playerPoints++;
+                    std::cout << "Colisão com quadrado detectada! Pontos do jogador: " << playerPoints << std::endl;
+                }
+                // Verifica se houve colisão com a borda inferior
+                if (squareY - squareSize < -1.0f) {
+                    // Colisão com a borda inferior detectada
+                    bottomPoints++;
+                    std::cout << "Colisão com a borda inferior! Pontos da borda inferior: " << bottomPoints << std::endl;
+                }
+            }
         }
 
-        //PLAYER
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            playerX += playerSpeed; // Move o jogador para a direita
+        }
 
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            playerX -= playerSpeed; // Move o jogador para a esquerda
+        }
 
+        player[0] = playerX - playerSize;
+        player[3] = playerX + playerSize;
+        player[6] = playerX + playerSize;
+        player[9] = playerX - playerSize;
 
-        // Limpa o buffer de cor
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Cor de fundo da janela (preto)
+        player[1] = playerY - playerSize;
+        player[4] = playerY - playerSize;
+        player[7] = playerY + playerSize;
+        player[10] = playerY + playerSize;
+
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Seta o shader
-        glUseProgram(shaderProgram);
+        glUseProgram(shaderProgramRed);
 
-        // Atualiza a posição do quadrado1 no VBO
         squares[1] = squareY - squareSize;
         squares[4] = squareY - squareSize;
         squares[7] = squareY + squareSize;
         squares[10] = squareY + squareSize;
 
-        // Atualiza as coordenadas X dos vértices do quadrado1
         squares[0] = squareX - squareSize;
         squares[3] = squareX + squareSize;
         squares[6] = squareX + squareSize;
         squares[9] = squareX - squareSize;
 
-        //glBindBuffer(GL_ARRAY_BUFFER, VBO1);
-        //glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+        // Verifique a colisão com as bordas da tela para o jogador
+        if (playerX - playerSize < -1.0f) {
+            // Colisão com a borda esquerda da tela
+            playerX = -1.0f + playerSize; // Reverta a posição
+        }
 
-        //// Envia os dados do array para o buffer
-        //glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
-        //glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);
+        if (playerX + playerSize > 1.0f) {
+            // Colisão com a borda direita da tela
+            playerX = 1.0f - playerSize; // Reverta a posição
+        }
 
+        // Verifique a colisão com as bordas da tela para o "square"
+        if (squareX - squareSize < -1.0f) {
+            // Colisão com a borda esquerda da tela
+            squareX = -1.0f + squareSize; // Reverta a posição
+        }
 
-        //// Vincula o buffer de geometria
-        //glBindVertexArray(VAO1);
-        //glBindVertexArray(VAO2);
+        if (squareX + squareSize > 1.0f) {
+            // Colisão com a borda direita da tela
+            squareX = 1.0f - squareSize; // Reverta a posição
+        }
+
+        
+
+       
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO1);
         glBufferData(GL_ARRAY_BUFFER, squares.size() * sizeof(float), squares.data(), GL_STATIC_DRAW);
-
         glBindVertexArray(VAO1);
-        // Chamada para renderizar o quadrado
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+        glUseProgram(shaderProgramBlue);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO2);
         glBufferData(GL_ARRAY_BUFFER, player.size() * sizeof(float), player.data(), GL_STATIC_DRAW);
-
         glBindVertexArray(VAO2);
-        // Chamada para renderizar o quadrado
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-        // Troca os buffers
         glfwSwapBuffers(window);
     }
 
-    // Deleta os buffers
     glDeleteVertexArrays(1, &VAO1);
     glDeleteBuffers(1, &VBO1);
     glDeleteVertexArrays(1, &VAO2);
     glDeleteBuffers(1, &VBO2);
-    glDeleteProgram(shaderProgram);
+    glDeleteProgram(shaderProgramRed);
+    glDeleteProgram(shaderProgramBlue);
 
-    // Finaliza a GLFW
     glfwTerminate();
 
     return 0;
