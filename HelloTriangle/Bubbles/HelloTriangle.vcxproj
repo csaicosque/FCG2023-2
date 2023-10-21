@@ -75,11 +75,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../Dependencies/glfw-3.3.8.bin.WIN32/include;../../Dependencies/GLAD/include;../../Dependencies/glm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../Dependencies/glfw-3.3.8.bin.WIN32/include;../../Dependencies/GLAD/include;../../Dependencies/glm;../../Dependencies/stb_image;../../Dependencies/freetype-windows-binaries-2.13.2/include</AdditionalIncludeDirectories>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>../../Dependencies/glfw-3.3.8.bin.WIN32/lib-vc2019</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../../Dependencies/glfw-3.3.8.bin.WIN32/lib-vc2019;../../Dependencies/stb_image;../../Dependencies/freetype-windows-binaries-2.13.2/release static/vs2015-2022/win32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -116,6 +118,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Dependencies\stb_image\stb_image.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
