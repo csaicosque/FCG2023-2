@@ -401,14 +401,16 @@ void desenhaTilemap()
 	//cout << "Desenhando tilemap" << endl;
 	Sprite *tile;
 
-	for (int i = 0; i < mapHeight; i++) //percorre as linhas do mapa
+	glm::vec2 posInicial = glm::vec2(100, 100);
+
+	for (int i = mapHeight-1; i >=0 ; i--) //percorre as linhas do mapa
 	{
 		for (int j = 0; j < mapWidth; j++) //percorre as colunas do mapa
 		{
-			cout << tilemap[i][j] << " ";
+			//cout << tilemap[i][j] << " ";
 			tile = &tileset[tilemap[i][j]]; //pega o indice que está  no tilemap na pos i j e recupera o tile no tileset
-			float xTile = j * tile->getWidth();
-			float yTile = i * tile->getHeight();
+			float xTile = posInicial.x + j * tile->getWidth();
+			float yTile = posInicial.y + i * tile->getHeight();
 
 			//cout << "[" << xTile << "," << yTile << "] ";
 
