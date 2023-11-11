@@ -41,6 +41,14 @@ const GLuint WIDTH = 1000, HEIGHT = 1000;
 bool rotateX=false, rotateY=false, rotateZ=false;
 
 
+//Variáveis de controle da câmeera
+glm::vec3 cameraPos = glm::vec3(0.0, 0.0, 3.0);
+
+glm::vec3 cameraUp = glm::vec3(0.0, 1.0, 0.0);
+
+float fov = glm::radians(60.0);
+
+
 // Função MAIN
 int main()
 {
@@ -105,12 +113,13 @@ int main()
 
 	//Criando a matriz de projeção
 	glm::mat4 projection = glm::mat4(1); //matriz identidade;
-	projection = glm::ortho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
-
+	//projection = glm::ortho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+	projection = glm::perspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
 	shader.setMat4("projection", glm::value_ptr(projection));
 
 	//Criando a matriz de view
 	glm::mat4 view = glm::mat4(1);
+	view = glm::lookAt(cameraPos, glm::vec3(0.0, 0.0, 0.0), cameraUp);
 	shader.setMat4("view", glm::value_ptr(view));
 
 	glEnable(GL_DEPTH_TEST);
