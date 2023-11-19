@@ -1,0 +1,72 @@
+# Blender 3.6.0 MTL File: 'minecraft.blend'
+# www.blender.org
+
+newmtl yellow_wool
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
+
+newmtl yellow_wool.001
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
+
+newmtl yellow_wool.002
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
+
+newmtl yellow_wool.003
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
+
+newmtl yellow_wool.004
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
+
+newmtl yellow_wool.005
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
+
+newmtl yellow_wool.006
+Ns 90.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_d C:/Users/fello/AppData/Roaming/Blender Foundation/Blender/3.6/scripts/addons/MCprep_addon/MCprep_resources/resourcepacks/mcprep_default/assets/minecraft/textures/block/yellow_wool.png
