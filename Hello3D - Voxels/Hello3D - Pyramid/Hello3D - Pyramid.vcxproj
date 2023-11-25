@@ -27,6 +27,8 @@
     <ClInclude Include="..\..\Common\include\Shader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\shaders\HelloPyramid - alphaChannel.fs" />
+    <None Include="..\shaders\HelloPyramid - alphaChannel.vs" />
     <None Include="..\shaders\HelloPyramid.fs" />
     <None Include="..\shaders\HelloPyramid.vs" />
   </ItemGroup>

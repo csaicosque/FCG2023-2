@@ -36,6 +36,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 int setupGeometry();
 void initializeGrid();
 void drawGrid(Shader *shader);
+void drawAlphaGrid(Shader* shader); //nem precisaria ter duas funções, feito por questões didáticas
+void drawWireGrid(Shader* shader);
+void drawGround(Shader* shader);
+int setupGroundGeometry();
+
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
@@ -47,7 +52,7 @@ bool rotateX=false, rotateY=false, rotateZ=false;
 
 
 //Variáveis de controle da câmeera
-glm::vec3 cameraPos = glm::vec3(0.0, 0.0, 3.0);
+glm::vec3 cameraPos = glm::vec3(0.0, GRID_H/2.0, GRID_D + 5.0);
 glm::vec3 cameraFront = glm::vec3(0.0, 0.0, -1.0);
 glm::vec3 cameraUp = glm::vec3(0.0, 1.0, 0.0);
 
@@ -110,35 +115,64 @@ int main()
 	glViewport(0, 0, width, height);
 
 
-	// Compilando e buildando o programa de shader
+	// Compilando e buildando oa programaa de shader
 	Shader shader("../shaders/HelloPyramid.vs", "../shaders/HelloPyramid.fs");
+	Shader shaderAlpha("../shaders/HelloPyramid - alphaChannel.vs", "../shaders/HelloPyramid - alphaChannel.fs");
 
 	// Gerando um buffer simples, com a geometria de um triângulo
 	GLuint VAO = setupGeometry();
+	GLuint groundVAO = setupGroundGeometry();
 
 
-	glUseProgram(shader.ID);
+	
 
 	//Criando a matriz de modelo
 	glm::mat4 model = glm::mat4(1); //matriz identidade;
 	model = glm::rotate(model, /*(GLfloat)glfwGetTime()*/glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	shader.setMat4("model", glm::value_ptr(model));
-
-
+	
 	//Criando a matriz de projeção
 	glm::mat4 projection = glm::mat4(1); //matriz identidade;
 	//projection = glm::ortho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
 	projection = glm::perspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
-	shader.setMat4("projection", glm::value_ptr(projection));
 
 	//Criando a matriz de view
 	glm::mat4 view = glm::mat4(1);
-	view = glm::lookAt(cameraPos, glm::vec3(0.0, 0.0, 0.0), cameraUp);
+	view = glm::lookAt(cameraPos, glm::vec3(0.0, GRID_H / 2.0, 0.0), cameraUp);
+	
+	//Enviando essas infos para os dois shaders
+	glUseProgram(shader.ID);
+	shader.setMat4("model", glm::value_ptr(model));
+	shader.setMat4("projection", glm::value_ptr(projection));
 	shader.setMat4("view", glm::value_ptr(view));
 
-	glEnable(GL_DEPTH_TEST);
+	glUseProgram(shaderAlpha.ID);
+	shaderAlpha.setMat4("model", glm::value_ptr(model));
+	shaderAlpha.setMat4("projection", glm::value_ptr(projection));
+	shaderAlpha.setMat4("view", glm::value_ptr(view));
+	//Enviando a intensidade de transparência
+	shaderAlpha.setFloat("alpha", 0.1);
+	shaderAlpha.setBool("override", true); //quero substituir a cor
+	shaderAlpha.setVec3("overrideColor", 0.0, 0.0, 0.0); //cor nova
+
+	//Habilitando o teste de profundidade
+	//glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+
+	//Habilitando a transparência
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//Habilitando o culling
+	glEnable(GL_CULL_FACE);  // Habilita o culling
+	glCullFace(GL_BACK);     // Descarta as faces traseiras
+
 
 	initializeGrid();
+
+	//teste
+	grid3D[0][1][0] = 0;
+	grid3D[3][3][3] = 0;
+	grid3D[4][4][4] = 0;
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -150,22 +184,51 @@ int main()
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glLineWidth(10);
+		glLineWidth(2);
 		glPointSize(20);
 
 
 		//Atualizando o shader com a nova posição e orientação da camera
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		shader.setMat4("view", glm::value_ptr(view));
+		
 
 		
-		// Chamada de desenho - drawcall
-		// Poligono Preenchido - GL_TRIANGLES
+		// Chamadas  de desenho
+		
+		glUseProgram(shaderAlpha.ID);
+		shaderAlpha.setMat4("view", glm::value_ptr(view));
+
+		//Desenhando o chão
+		glBindVertexArray(groundVAO);
+		drawGround(&shaderAlpha);
+
+		
+		//Desenhando a grid transparente
 		glBindVertexArray(VAO);
-		
+		drawAlphaGrid(&shaderAlpha);
+
+		//Desenhando a grid de voxels
+		glUseProgram(shader.ID);
+		shader.setMat4("view", glm::value_ptr(view));
+		glBindVertexArray(VAO);
+		glEnable(GL_DEPTH_TEST);
 		drawGrid(&shader);
+		glDisable(GL_DEPTH_TEST);
+
+		glUseProgram(shaderAlpha.ID);
+
+		//Desenhando a grid só contorno
+		glBindVertexArray(groundVAO);
+		drawWireGrid(&shaderAlpha);
+
 		
 
+		
+
+		
+		
+		
+		
 		glBindVertexArray(0);
 
 		// Troca os buffers da tela
@@ -173,6 +236,7 @@ int main()
 	}
 	// Pede pra OpenGL desalocar os buffers
 	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &groundVAO);
 	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
 	glfwTerminate();
 	return 0;
@@ -281,44 +345,69 @@ int setupGeometry()
 	// Pode ser arazenado em um VBO único ou em VBOs separados
 	GLfloat vertices[] = {
 
-		//Base da pirâmide: 2 triângulos
+		//Base do cubo: 2 triângulos
 		//x    y    z    r    g    b
-		-0.5, -0.5, -0.5, 1.0, 1.0, 0.0, // v0
-		-0.5, -0.5,  0.5, 0.0, 1.0, 1.0, // v1
-		 0.5, -0.5, -0.5, 1.0, 0.0, 1.0, // v2
+		-0.5, -0.5, -0.5, 0.88, 0.15, 0.07, //v0
+		-0.5, -0.5,  0.5, 0.88, 0.15, 0.07, //v1
+		 0.5, -0.5, -0.5, 0.88, 0.15, 0.07, //v2
 
-		 -0.5, -0.5, 0.5, 1.0, 1.0, 0.0, //v3
-		  0.5, -0.5, 0.5, 0.0, 1.0, 1.0, //v4 
-		  0.5, -0.5,-0.5, 1.0, 0.0, 1.0, //v5
+		 -0.5, -0.5, 0.5,  0.88, 0.15, 0.07, //v3
+		  0.5, -0.5,  0.5, 0.88, 0.15, 0.07, //v4
+		  0.5, -0.5, -0.5, 0.88, 0.15, 0.07, //v5
 
-		 // Primeiro triângulo (amarelo)
-		 -0.5, -0.5, -0.5, 1.0, 1.0, 0.0, //v6
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0, //v7
-		  0.5, -0.5, -0.5, 1.0, 1.0, 0.0, //v8
+		  //Face de cima: 2 triângulos
+		  -0.5, 0.5,  0.5, 1.0, 0.41, 0.03, //v6
+		   0.5, 0.5,  0.5, 1.0, 0.41, 0.03, //v7
+		  -0.5, 0.5, -0.5, 1.0, 0.41, 0.03, //v8
 
-		  // Segundo triângulo (magenta)
-		  -0.5, -0.5, -0.5, 1.0, 0.0, 1.0, //v9
-		   0.0,  0.5,  0.0, 1.0, 0.0, 1.0, //v10
-		  -0.5, -0.5,  0.5, 1.0, 0.0, 1.0, //v11
+		  0.5, 0.5,  0.5, 1.0, 0.41, 0.03, //v9
+		  0.5, 0.5, -0.5, 1.0, 0.41, 0.03, //v10
+		 -0.5, 0.5, -0.5, 1.0, 0.41, 0.03, //v11
 
-		  // Terceiro triângulo (amarelo)
-		  -0.5, -0.5, 0.5, 1.0, 1.0, 0.0, //v12
-		   0.0,  0.5, 0.0, 1.0, 1.0, 0.0, //v13
-		   0.5, -0.5, 0.5, 1.0, 1.0, 0.0, //v14
+		 //Face de frente: 2 triângulos
+		 -0.5, -0.5, -0.5, 0.94, 1.0, 0.03, //v12
+		 -0.5,  0.5, -0.5, 0.94, 1.0, 0.03, //v13
+		  0.5, -0.5, -0.5, 0.94, 1.0, 0.03, //v14
 
-		   // Quarto triângulo (ciano)
-		   0.5, -0.5,  0.5, 0.0, 1.0, 1.0, //v15
-		   0.0,  0.5,  0.0, 0.0, 1.0, 1.0, //v16
-		   0.5, -0.5, -0.5, 0.0, 1.0, 1.0, //v17
+		  0.5, -0.5, -0.5, 0.94, 1.0, 0.03, //v15
+		 -0.5,  0.5, -0.5, 0.94, 1.0, 0.03, //v16
+		  0.5,  0.5, -0.5, 0.94, 1.0, 0.03, //v17
 
-		   //Chão 2 triângulos
-		   -5.0, -0.5, -5.0, 0.5, 0.5, 0.5, // v18
-		   -5.0, -0.5,  5.0, 0.5, 0.5, 0.5, // v19
-			5.0, -0.5, -5.0, 0.5, 0.5, 0.5, // v20
+		  //Face de trás: 2 triângulos
+		  -0.5,  0.5,  0.5, 0.09, 0.49, 0.12, //v18
+		  -0.5, -0.5,  0.5, 0.09, 0.49, 0.12, //v19
+		   0.5,  0.5,  0.5, 0.09, 0.49, 0.12, //v20
 
-		   -5.0, -0.5, 5.0, 0.5, 0.5, 0.5, //v21
-			5.0, -0.5, 5.0, 0.5, 0.5, 0.5, //v22 
-			5.0, -0.5,-5.0, 0.5, 0.5, 0.5, //v23
+		   0.5,  0.5,  0.5, 0.09, 0.49, 0.12, //v21
+		  -0.5, -0.5,  0.5, 0.09, 0.49, 0.12, //v22
+		   0.5, -0.5,  0.5, 0.09, 0.49, 0.12, //v23
+
+		   //Face da esquerda: 2 triângulos
+		  -0.5,  0.5, -0.5, 0.28, 0.28, 1.0, //v24
+		  -0.5, -0.5, -0.5, 0.28, 0.28, 1.0, //v25
+		  -0.5, -0.5,  0.5, 0.28, 0.28, 1.0, //v26
+
+		  -0.5, -0.5,  0.5, 0.28, 0.28, 1.0, //v27
+		  -0.5,  0.5,  0.5, 0.28, 0.28, 1.0, //v28
+		  -0.5,  0.5, -0.5, 0.28, 0.28, 1.0, //v29
+
+		  //Face da direita: 2 triângulos
+		   0.5,  0.5,  0.5, 0.47, 0.18, 0.54, //v30
+		   0.5, -0.5,  0.5, 0.47, 0.18, 0.54, //v31
+		   0.5, -0.5, -0.5, 0.47, 0.18, 0.54, //v32
+
+		   0.5, -0.5, -0.5, 0.47, 0.18, 0.54, //v33
+		   0.5,  0.5, -0.5, 0.47, 0.18, 0.54, //v34
+		   0.5,  0.5,  0.5, 0.47, 0.18, 0.54, //v35
+
+		 //  //Chão: 2 triângulos
+		 //  -1.0, -0.5, -1.0, 0.5, 0.5, 0.5, //v36
+		 //  -1.0, -0.5,  1.0, 0.5, 0.5, 0.5, //v37
+			//1.0, -0.5, -1.0, 0.5, 0.5, 0.5, //v38
+
+		 //  -1.0, -0.5,  1.0,  0.5, 0.5, 0.5, //v39
+			//1.0, -0.5,  1.0, 0.5, 0.5, 0.5, //v40
+			//1.0, -0.5, -1.0, 0.5, 0.5, 0.5, //v41
 	};
 
 	GLuint VBO, VAO;
@@ -382,6 +471,9 @@ void initializeGrid()
 void drawGrid(Shader* shader)
 {
 	glm::mat4 model;
+
+	float xi = -GRID_W / 2.0;
+	float zi = -GRID_D / 2.0;
 	
 	for (int h = 0; h < GRID_H; h++)
 	{
@@ -389,20 +481,178 @@ void drawGrid(Shader* shader)
 		{
 			for (int d = 0; d < GRID_D; d++)
 			{
-				float x = w; //w * cubeWidth
+				if (grid3D[h][w][d] != -1)
+				{
+
+					float x = xi + w; //w * cubeWidth
+					float y = h;
+					float z = zi + d;
+					model = glm::mat4(1);
+					model = glm::translate(model, glm::vec3(x, y, z));
+					shader->setMat4("model", glm::value_ptr(model));
+
+					glDrawArrays(GL_TRIANGLES, 0, 36);
+				}
+			}
+		}
+	}	
+}
+
+
+void drawAlphaGrid(Shader* shader)
+{
+	glm::mat4 model;
+
+	float xi = -GRID_W / 2.0;
+	float zi = -GRID_D / 2.0;
+
+	for (int h = 0; h < GRID_H; h++)
+	{
+		for (int w = 0; w < GRID_W; w++)
+		{
+			for (int d = 0; d < GRID_D; d++)
+			{
+				float x = xi + w; //w * cubeWidth
 				float y = h;
-				float z = d;
+				float z = zi + d;
 				model = glm::mat4(1);
 				model = glm::translate(model, glm::vec3(x, y, z));
-				shader->setMat4("model", glm::value_ptr(model));
-				glDrawArrays(GL_TRIANGLES, 0, 18);
+				shader->setMat4("model", glm::value_ptr(model));		
+				
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+				
 			}
 		}
 	}
-	
-
-
-
-	
 }
+
+void drawWireGrid(Shader* shader)
+{
+	glm::mat4 model;
+
+	float xi = -GRID_W / 2.0;
+	float zi = -GRID_D / 2.0;
+
+	for (int h = 0; h < GRID_H; h++)
+	{
+		for (int w = 0; w < GRID_W; w++)
+		{
+			for (int d = 0; d < GRID_D; d++)
+			{
+				float x = xi + w; //w * cubeWidth
+				float y = h;
+				float z = zi + d;
+				model = glm::mat4(1);
+				model = glm::translate(model, glm::vec3(x, y, z));
+				shader->setMat4("model", glm::value_ptr(model));
+				glDrawArrays(GL_LINE_LOOP, 0, 4);
+				glDrawArrays(GL_LINE_LOOP, 4, 4);
+				glDrawArrays(GL_LINE_LOOP, 8, 4);
+				glDrawArrays(GL_LINE_LOOP, 12, 4);
+
+			}
+		}
+	}
+}
+
+void drawGround(Shader* shader)
+{
+	//Vamos desenhar o chão a partir de chamadas de desenho
+	//utilizando os primeiros 2 triângulos do cubo
+	glm::mat4 model;
+	float xi = -(GRID_W + 10) / 2.0;
+	float zi = -(GRID_D + 10) / 2.0;
+	for (int d = 0; d < GRID_D + 10; d++)
+	{
+		for (int w = 0; w < GRID_W + 10; w++)
+		{
+			float x = xi + w; //w * cubeWidth
+			float y = 0.0;
+			float z = zi + d;
+			model = glm::mat4(1);
+			model = glm::translate(model, glm::vec3(x, y, z));
+			shader->setMat4("model", glm::value_ptr(model));
+			glDrawArrays(GL_LINE_LOOP, 0, 4);
+		}
+	}
+}
+
+int setupGroundGeometry()
+{
+	//pode virar parametro isso
+	float gray = 0.0;
+	
+	GLfloat vertices[] = {
+
+		//4 vértices para os quadrados do chão (que serão desenhados com LINE_LOOP)
+		//x    y    z    r    g    b
+		-0.5, -0.5, -0.5, gray, gray, gray, //v0
+		 0.5, -0.5, -0.5, gray, gray, gray, //v1
+		 0.5, -0.5,  0.5, gray, gray, gray, //v2
+		-0.5, -0.5,  0.5, gray, gray, gray, //v3
+
+		//face de cima
+		-0.5, 0.5, -0.5, gray, gray, gray, //v4
+		 0.5, 0.5, -0.5, gray, gray, gray, //v5
+		 0.5, 0.5,  0.5, gray, gray, gray, //v6
+		-0.5, 0.5,  0.5, gray, gray, gray, //v7
+
+		//Face da frente
+		-0.5, -0.5,  0.5, gray, gray, gray, //v8
+		 0.5, -0.5,  0.5, gray, gray, gray, //v8
+		 0.5,  0.5,  0.5, gray, gray, gray, //v10
+		-0.5,  0.5,  0.5, gray, gray, gray, //v11
+
+		//Face de trás
+		-0.5, -0.5, -0.5, gray, gray, gray, //v12
+		 0.5, -0.5, -0.5, gray, gray, gray, //v13
+		 0.5,  0.5, -0.5, gray, gray, gray, //v14
+		-0.5,  0.5, -0.5, gray, gray, gray, //v15
+	};
+
+	GLuint VBO, VAO;
+
+	//Geração do identificador do VBO
+	glGenBuffers(1, &VBO);
+
+	//Faz a conexão (vincula) do buffer como um buffer de array
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	//Envia os dados do array de floats para o buffer da OpenGl
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	//Geração do identificador do VAO (Vertex Array Object)
+	glGenVertexArrays(1, &VAO);
+
+	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
+	// e os ponteiros para os atributos 
+	glBindVertexArray(VAO);
+
+	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
+	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
+	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
+	// Tipo do dado
+	// Se está normalizado (entre zero e um)
+	// Tamanho em bytes 
+	// Deslocamento a partir do byte zero 
+
+	//Atributo posição (x, y, z)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+
+	//Atributo cor (r, g, b)
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
+	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
+	// atualmente vinculado - para que depois possamos desvincular com segurança
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
+	glBindVertexArray(0);
+
+	return VAO;
+}
+
+
 

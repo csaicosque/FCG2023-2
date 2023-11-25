@@ -40,5 +40,11 @@
     <None Include="..\shaders\HelloPyramid.vs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\shaders\HelloPyramid - alphaChannel.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\HelloPyramid - alphaChannel.vs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
