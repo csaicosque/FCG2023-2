@@ -221,14 +221,7 @@ int main()
 		glBindVertexArray(groundVAO);
 		drawWireGrid(&shaderAlpha);
 
-		
-
-		
-
-		
-		
-		
-		
+			
 		glBindVertexArray(0);
 
 		// Troca os buffers da tela
