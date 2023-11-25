@@ -39,6 +39,7 @@ void drawGrid(Shader *shader);
 void drawAlphaGrid(Shader* shader); //nem precisaria ter duas funções, feito por questões didáticas
 void drawWireGrid(Shader* shader);
 void drawGround(Shader* shader);
+void drawCursor(Shader* shader);
 int setupGroundGeometry();
 
 
@@ -64,6 +65,16 @@ float fov = glm::radians(60.0);
 
 int grid3D[GRID_H][GRID_W][GRID_D];
 
+glm::vec3 cursorPos = glm::vec3(0, 0, 0);
+
+
+glm::vec3 cursorColor = glm::vec3(0.3, 0.3, 0.3);
+
+glm::vec3 palette[2] = { glm::vec3(1.0,0.0,1.0), //0
+						 glm::vec3(0.0,1.0,1.0)  //1
+                       };
+
+int paletteColor = 0;
 
 // Função MAIN
 int main()
@@ -139,11 +150,15 @@ int main()
 	glm::mat4 view = glm::mat4(1);
 	view = glm::lookAt(cameraPos, glm::vec3(0.0, GRID_H / 2.0, 0.0), cameraUp);
 	
+
+
 	//Enviando essas infos para os dois shaders
 	glUseProgram(shader.ID);
 	shader.setMat4("model", glm::value_ptr(model));
 	shader.setMat4("projection", glm::value_ptr(projection));
 	shader.setMat4("view", glm::value_ptr(view));
+	shader.setBool("override", true);
+	shader.setVec3("overrideColor", cursorColor.r, cursorColor.g, cursorColor.b);
 
 	glUseProgram(shaderAlpha.ID);
 	shaderAlpha.setMat4("model", glm::value_ptr(model));
@@ -170,9 +185,9 @@ int main()
 	initializeGrid();
 
 	//teste
-	grid3D[0][1][0] = 0;
+	/*grid3D[0][1][0] = 0;
 	grid3D[3][3][3] = 0;
-	grid3D[4][4][4] = 0;
+	grid3D[4][4][4] = 0;*/
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -197,7 +212,7 @@ int main()
 		
 		glUseProgram(shaderAlpha.ID);
 		shaderAlpha.setMat4("view", glm::value_ptr(view));
-
+		shaderAlpha.setFloat("alpha", 0.1);
 		//Desenhando o chão
 		glBindVertexArray(groundVAO);
 		drawGround(&shaderAlpha);
@@ -205,6 +220,7 @@ int main()
 		
 		//Desenhando a grid transparente
 		glBindVertexArray(VAO);
+		shaderAlpha.setFloat("alpha", 0.08);
 		drawAlphaGrid(&shaderAlpha);
 
 		//Desenhando a grid de voxels
@@ -213,10 +229,14 @@ int main()
 		glBindVertexArray(VAO);
 		glEnable(GL_DEPTH_TEST);
 		drawGrid(&shader);
+		
+		drawCursor(&shader);
+		
 		glDisable(GL_DEPTH_TEST);
 
-		glUseProgram(shaderAlpha.ID);
 
+
+		glUseProgram(shaderAlpha.ID);
 		//Desenhando a grid só contorno
 		glBindVertexArray(groundVAO);
 		drawWireGrid(&shaderAlpha);
@@ -264,21 +284,124 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		rotateZ = true;
 	}
 
-	if (key == GLFW_KEY_W || key == GLFW_KEY_UP)
+	if (key == GLFW_KEY_W)
 	{
 		cameraPos += cameraSpeed * cameraFront;
 	}
-	if (key == GLFW_KEY_S || key == GLFW_KEY_DOWN)
+	if (key == GLFW_KEY_S)
 	{
 		cameraPos -= cameraSpeed * cameraFront;
 	}
-	if (key == GLFW_KEY_A || key == GLFW_KEY_LEFT)
+	if (key == GLFW_KEY_A)
 	{
 		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	}
-	if (key == GLFW_KEY_D || key == GLFW_KEY_RIGHT)
+	if (key == GLFW_KEY_D)
 	{
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+
+
+	//Navegação do cursor do mouse para direita
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+	{
+		if (cursorPos.x < GRID_W - 1)
+		{
+			cursorPos.x = cursorPos.x + 1;
+		}
+		else
+		{
+			cursorPos.x = 0;
+		}
+	}
+
+	//Navegação do cursor do mouse para esquerda
+	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+	{
+		if (cursorPos.x > 0)
+		{
+			cursorPos.x = cursorPos.x - 1;
+		}
+		else
+		{
+			cursorPos.x = GRID_W - 1;
+		}
+	}
+
+	//Navegação do cursor do mouse para cima
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+	{
+		if (cursorPos.y < GRID_H - 1)
+		{
+			cursorPos.y = cursorPos.y + 1;
+		}
+		else
+		{
+			cursorPos.y = 0;
+		}
+	}
+
+	//Navegação do cursor do mouse para baixo
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+	{
+		if (cursorPos.y > 0)
+		{
+			cursorPos.y = cursorPos.y - 1;
+		}
+		else
+		{
+			cursorPos.y = GRID_H - 1;
+		}
+	}
+
+	//Navegação do cursor do mouse para frente
+	if (key == GLFW_KEY_K && action == GLFW_PRESS)
+	{
+		if (cursorPos.z < GRID_D - 1)
+		{
+			cursorPos.z = cursorPos.z + 1;
+		}
+		else
+		{
+			cursorPos.z = 0;
+		}
+	}
+
+	//Navegação do cursor do mouse para trás
+	if (key == GLFW_KEY_I && action == GLFW_PRESS)
+	{
+		if (cursorPos.z > 0)
+		{
+			cursorPos.z = cursorPos.z - 1;
+		}
+		else
+		{
+			cursorPos.z = GRID_D - 1;
+		}
+	}
+
+	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+	{
+		int x = (int)cursorPos.x;
+		int y = (int)cursorPos.y;
+		int z = (int)cursorPos.z;
+		if (grid3D[y][x][z] == -1) //vazio
+		{
+			grid3D[y][x][z] = paletteColor; //adiciona voxel na grid
+		}
+		else
+		{
+			grid3D[y][x][z] = -1; //remove voxel na grid
+		}
+	}
+
+	if (key == GLFW_KEY_1 && action == GLFW_PRESS)
+	{
+		paletteColor = 0;
+	}
+	if (key == GLFW_KEY_2 && action == GLFW_PRESS)
+	{
+		paletteColor = 1;
 	}
 
 
@@ -476,7 +599,8 @@ void drawGrid(Shader* shader)
 			{
 				if (grid3D[h][w][d] != -1)
 				{
-
+					int idColor = grid3D[h][w][d];
+					shader->setVec3("overrideColor", palette[idColor].r, palette[idColor].g, palette[idColor].b);
 					float x = xi + w; //w * cubeWidth
 					float y = h;
 					float z = zi + d;
@@ -645,6 +769,25 @@ int setupGroundGeometry()
 	glBindVertexArray(0);
 
 	return VAO;
+}
+
+void drawCursor(Shader* shader)
+{
+	shader->setVec3("overrideColor", cursorColor.r, cursorColor.g, cursorColor.b);
+
+	glm::mat4 model;
+
+	float xi = -GRID_W / 2.0;
+	float zi = -GRID_D / 2.0;
+
+	float x = xi + cursorPos.x; //w * cubeWidth
+	float y = cursorPos.y;
+	float z = zi + cursorPos.z;
+	model = glm::mat4(1);
+	model = glm::translate(model, glm::vec3(x, y, z));
+	shader->setMat4("model", glm::value_ptr(model));
+
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
 
