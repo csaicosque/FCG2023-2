@@ -1,12 +1,4 @@
-﻿/* Hello Triangle - código adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
- *
- * Adaptado por Rossana Baptista Queiroz
- * para a disciplina de Processamento Gráfico/Computação Gráfica - Unisinos
- * Versão inicial: 7/4/2017
- * Última atualização em 11/11/2023
- *
- */
-
+﻿//-------------------------------------------INCLUDE-------------------------------------------
 #include <iostream>
 #include <string>
 #include <assert.h>
@@ -27,6 +19,7 @@ using namespace std;
 //Classe gerenciadora dos shaders
 #include "Shader.h"
 
+//------------------------------------------PROTÓTIPOS-DE-FUNÇÕES-------------------------------------------
 
 // Protótipo da função de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -42,6 +35,7 @@ void drawGround(Shader* shader);
 void drawCursor(Shader* shader);
 int setupGroundGeometry();
 
+//------------------------------------------VARIÁVEIS-E-CONSTS-------------------------------------------
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
@@ -58,7 +52,7 @@ glm::vec3 cameraFront = glm::vec3(0.0, 0.0, -1.0);
 glm::vec3 cameraUp = glm::vec3(0.0, 1.0, 0.0);
 
 bool firstMouse = true;
-float lastX = WIDTH / 2.0, lastY = HEIGHT / 2.0; //para calcular o quanto que o mouse deslocou
+float lastX = WIDTH / 2.0, lastY = HEIGHT / 2.0; //calculo do mouse
 float yaw = -90.0, pitch = 0.0; //rotação em x e y
 
 float fov = glm::radians(60.0);
@@ -70,33 +64,82 @@ glm::vec3 cursorPos = glm::vec3(0, 0, 0);
 
 glm::vec3 cursorColor = glm::vec3(0.3, 0.3, 0.3);
 
-glm::vec3 palette[2] = { glm::vec3(1.0,0.0,1.0), //0
-						 glm::vec3(0.0,1.0,1.0)  //1
-                       };
+//---------------------------------------------PALETA-DE-CORES-----------------------------------------
 
-int paletteColor = 0;
+glm::vec3 palette[5] = {
+	glm::vec3(1.0, 0.0, 1.0), // Magenta
+	glm::vec3(0.0, 1.0, 1.0), // Ciano
+	glm::vec3(1.0, 1.0, 0.0), // Amarelo
+	glm::vec3(0.0, 1.0, 0.0), // Verde
+	glm::vec3(1.0, 0.0, 0.0)  // Vermelho
+};
 
-// Função MAIN
+int paletteColor = 0; // Inicia no Magenta
+
+//-------------------------------------------FUNÇÃO-SALVAR-------------------------------------------
+
+void saveScene(const std::string& filename) {
+	std::ofstream outFile(filename, std::ios::out | std::ios::binary);
+
+	if (!outFile) {
+		std::cerr << "Erro ao abrir o arquivo para salvar a cena." << std::endl;
+		return;
+	}
+
+	// Salva as dimensões da matriz
+	outFile.write(reinterpret_cast<const char*>(&GRID_H), sizeof(int));
+	outFile.write(reinterpret_cast<const char*>(&GRID_W), sizeof(int));
+	outFile.write(reinterpret_cast<const char*>(&GRID_D), sizeof(int));
+
+	// Salva os dados da matriz
+	outFile.write(reinterpret_cast<const char*>(&grid3D[0][0][0]), sizeof(int) * GRID_H * GRID_W * GRID_D);
+
+	outFile.close();
+
+	std::cout << "Cena salva com sucesso!" << std::endl;
+}
+
+//-------------------------------------------FUNÇÃO-CARREGAR-------------------------------------------
+
+void loadScene(const std::string& filename) {
+	std::ifstream inFile(filename, std::ios::in | std::ios::binary);
+
+	if (!inFile) {
+		std::cerr << "Erro ao abrir o arquivo para carregar a cena." << std::endl;
+		return;
+	}
+
+	int loaded_GRID_H, loaded_GRID_W, loaded_GRID_D;
+
+	// Lê as dimensões da matriz
+	inFile.read(reinterpret_cast<char*>(&loaded_GRID_H), sizeof(int));
+	inFile.read(reinterpret_cast<char*>(&loaded_GRID_W), sizeof(int));
+	inFile.read(reinterpret_cast<char*>(&loaded_GRID_D), sizeof(int));
+
+	// Verifica se as dimensões são compatíveis
+	if (loaded_GRID_H == GRID_H && loaded_GRID_W == GRID_W && loaded_GRID_D == GRID_D) {
+		// Lê os dados da matriz
+		inFile.read(reinterpret_cast<char*>(&grid3D[0][0][0]), sizeof(int) * GRID_H * GRID_W * GRID_D);
+
+		std::cout << "Cena carregada com sucesso!" << std::endl;
+	}
+	else {
+		std::cerr << "As dimensões da cena no arquivo não coincidem com as dimensões atuais." << std::endl;
+	}
+
+	inFile.close();
+}
+
+
+//-------------------------------------------FUNÇÃO-MAIN-------------------------------------------
+
 int main()
 {
 	// Inicialização da GLFW
 	glfwInit();
 
-	//Muita atenção aqui: alguns ambientes não aceitam essas configurações
-	//Você deve adaptar para a versão do OpenGL suportada por sua placa
-	//Sugestão: comente essas linhas de código para desobrir a versão e
-	//depois atualize (por exemplo: 4.5 com 4 e 5)
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	//Essencial para computadores da Apple
-//#ifdef __APPLE__
-//	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-//#endif
-
 	// Criação da janela GLFW
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Ola 3D!", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Magica Voxel - Cindi Saicosque", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 
 	// Fazendo o registro da função de callback para a janela GLFW
@@ -105,7 +148,6 @@ int main()
 	
 	glfwSetCursorPos(window, WIDTH / 2, HEIGHT / 2);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 
 	// GLAD: carrega todos os ponteiros d funções da OpenGL
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -134,9 +176,6 @@ int main()
 	GLuint VAO = setupGeometry();
 	GLuint groundVAO = setupGroundGeometry();
 
-
-	
-
 	//Criando a matriz de modelo
 	glm::mat4 model = glm::mat4(1); //matriz identidade;
 	model = glm::rotate(model, /*(GLfloat)glfwGetTime()*/glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -150,8 +189,6 @@ int main()
 	glm::mat4 view = glm::mat4(1);
 	view = glm::lookAt(cameraPos, glm::vec3(0.0, GRID_H / 2.0, 0.0), cameraUp);
 	
-
-
 	//Enviando essas infos para os dois shaders
 	glUseProgram(shader.ID);
 	shader.setMat4("model", glm::value_ptr(model));
@@ -184,18 +221,15 @@ int main()
 
 	initializeGrid();
 
-	//teste
-	/*grid3D[0][1][0] = 0;
-	grid3D[3][3][3] = 0;
-	grid3D[4][4][4] = 0;*/
+	//---------------------------------------------------LOOP-PRINCIPAL-------------------------------------------------------
 
-	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
 	{
-		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
+		//Checa os inputs
 		glfwPollEvents();
 
-		// Limpa o buffer de cor
+
+		//Limpa os buffers
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -206,10 +240,7 @@ int main()
 		//Atualizando o shader com a nova posição e orientação da camera
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		
-
-		
 		// Chamadas  de desenho
-		
 		glUseProgram(shaderAlpha.ID);
 		shaderAlpha.setMat4("view", glm::value_ptr(view));
 		shaderAlpha.setFloat("alpha", 0.1);
@@ -233,15 +264,11 @@ int main()
 		drawCursor(&shader);
 		
 		glDisable(GL_DEPTH_TEST);
-
-
-
 		glUseProgram(shaderAlpha.ID);
+
 		//Desenhando a grid só contorno
 		glBindVertexArray(groundVAO);
 		drawWireGrid(&shaderAlpha);
-
-			
 		glBindVertexArray(0);
 
 		// Troca os buffers da tela
@@ -255,9 +282,8 @@ int main()
 	return 0;
 }
 
-// Função de callback de teclado - só pode ter uma instância (deve ser estática se
-// estiver dentro de uma classe) - É chamada sempre que uma tecla for pressionada
-// ou solta via GLFW
+//-------------------------------------------NAVEGAÇÃO-------------------------------------------
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -284,18 +310,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		rotateZ = true;
 	}
 
+	// para frente
 	if (key == GLFW_KEY_W)
 	{
 		cameraPos += cameraSpeed * cameraFront;
 	}
-	if (key == GLFW_KEY_S)
+	// para trás
+	if (key == GLFW_KEY_Q)
 	{
 		cameraPos -= cameraSpeed * cameraFront;
 	}
+	// para cima
 	if (key == GLFW_KEY_A)
 	{
 		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	}
+	// para baixo
 	if (key == GLFW_KEY_D)
 	{
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
@@ -305,79 +335,86 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	//Navegação do cursor do mouse para direita
 	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 	{
-		if (cursorPos.x < GRID_W - 1)
+		/*if (cursorPos.x < GRID_W - 1)
 		{
 			cursorPos.x = cursorPos.x + 1;
 		}
 		else
 		{
 			cursorPos.x = 0;
-		}
+		}*/
+
+		cursorPos.x = cursorPos.x < GRID_W - 1 ? cursorPos.x + 1 : 0;
 	}
 
 	//Navegação do cursor do mouse para esquerda
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
 	{
-		if (cursorPos.x > 0)
+		/*if (cursorPos.x > 0)
 		{
 			cursorPos.x = cursorPos.x - 1;
 		}
 		else
 		{
 			cursorPos.x = GRID_W - 1;
-		}
+		}*/
+		cursorPos.x = cursorPos.x > 0 ? cursorPos.x - 1 : GRID_W - 1;
 	}
 
 	//Navegação do cursor do mouse para cima
 	if (key == GLFW_KEY_UP && action == GLFW_PRESS)
 	{
-		if (cursorPos.y < GRID_H - 1)
+	/*	if (cursorPos.y < GRID_H - 1)
 		{
 			cursorPos.y = cursorPos.y + 1;
 		}
 		else
 		{
 			cursorPos.y = 0;
-		}
+		}*/
+		cursorPos.y = cursorPos.y < GRID_H - 1 ? cursorPos.y + 1 : 0;
 	}
 
 	//Navegação do cursor do mouse para baixo
 	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
 	{
-		if (cursorPos.y > 0)
+		/*if (cursorPos.y > 0)
 		{
 			cursorPos.y = cursorPos.y - 1;
 		}
 		else
 		{
 			cursorPos.y = GRID_H - 1;
-		}
+		}*/
+		cursorPos.y = cursorPos.y > 0 ? cursorPos.y - 1 : GRID_H - 1;
 	}
 
-	//Navegação do cursor do mouse para frente
+	// grid para frente
 	if (key == GLFW_KEY_K && action == GLFW_PRESS)
 	{
-		if (cursorPos.z < GRID_D - 1)
+	/*	if (cursorPos.z < GRID_D - 1)
 		{
 			cursorPos.z = cursorPos.z + 1;
 		}
 		else
 		{
 			cursorPos.z = 0;
-		}
+		}*/
+		cursorPos.z = cursorPos.z < GRID_D - 1 ? cursorPos.z + 1 : 0;
 	}
 
-	//Navegação do cursor do mouse para trás
+	// grid para trás
 	if (key == GLFW_KEY_I && action == GLFW_PRESS)
 	{
-		if (cursorPos.z > 0)
+		/*if (cursorPos.z > 0)
 		{
 			cursorPos.z = cursorPos.z - 1;
 		}
 		else
 		{
 			cursorPos.z = GRID_D - 1;
-		}
+		}*/
+		cursorPos.z = cursorPos.z > 0 ? cursorPos.z - 1 : GRID_D - 1;
 	}
 
 	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
@@ -397,11 +434,39 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	if (key == GLFW_KEY_1 && action == GLFW_PRESS)
 	{
-		paletteColor = 0;
+		paletteColor = 0; // Magenta
 	}
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS)
 	{
-		paletteColor = 1;
+		paletteColor = 1; // Ciano
+	}
+	if (key == GLFW_KEY_3 && action == GLFW_PRESS)
+	{
+		paletteColor = 2; // Amarelo
+	}
+	if (key == GLFW_KEY_4 && action == GLFW_PRESS)
+	{
+		paletteColor = 3; // Verde
+	}
+	if (key == GLFW_KEY_5 && action == GLFW_PRESS)
+	{
+		paletteColor = 4; // Vermelho
+	}
+
+	void keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods);
+	{
+		if (action == GLFW_PRESS) {
+			switch (key) {
+			case GLFW_KEY_S:
+				saveScene("scene.txt");
+				break;
+			case GLFW_KEY_L:
+				loadScene("scene.txt");
+				break;
+			default:
+				break;
+			}
+		}
 	}
 
 
@@ -448,17 +513,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 }
 
-// Esta função está bastante harcoded - objetivo é criar os buffers que armazenam a 
-// geometria de um triângulo
-// Apenas atributo coordenada nos vértices
-// 1 VBO com as coordenadas, VAO com apenas 1 ponteiro para atributo
-// A função retorna o identificador do VAO
+//-------------------------------------------BUFFERS-------------------------------------------
+
 int setupGeometry()
 {
-	// Aqui setamos as coordenadas x, y e z do triângulo e as armazenamos de forma
-	// sequencial, já visando mandar para o VBO (Vertex Buffer Objects)
-	// Cada atributo do vértice (coordenada, cores, coordenadas de textura, normal, etc)
-	// Pode ser arazenado em um VBO único ou em VBOs separados
 	GLfloat vertices[] = {
 
 		//Base do cubo: 2 triângulos
@@ -515,15 +573,6 @@ int setupGeometry()
 		   0.5, -0.5, -0.5, 0.47, 0.18, 0.54, //v33
 		   0.5,  0.5, -0.5, 0.47, 0.18, 0.54, //v34
 		   0.5,  0.5,  0.5, 0.47, 0.18, 0.54, //v35
-
-		 //  //Chão: 2 triângulos
-		 //  -1.0, -0.5, -1.0, 0.5, 0.5, 0.5, //v36
-		 //  -1.0, -0.5,  1.0, 0.5, 0.5, 0.5, //v37
-			//1.0, -0.5, -1.0, 0.5, 0.5, 0.5, //v38
-
-		 //  -1.0, -0.5,  1.0,  0.5, 0.5, 0.5, //v39
-			//1.0, -0.5,  1.0, 0.5, 0.5, 0.5, //v40
-			//1.0, -0.5, -1.0, 0.5, 0.5, 0.5, //v41
 	};
 
 	GLuint VBO, VAO;
@@ -540,17 +589,7 @@ int setupGeometry()
 	//Geração do identificador do VAO (Vertex Array Object)
 	glGenVertexArrays(1, &VAO);
 
-	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
-	// e os ponteiros para os atributos 
 	glBindVertexArray(VAO);
-	
-	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
-	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
-	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
-	// Tipo do dado
-	// Se está normalizado (entre zero e um)
-	// Tamanho em bytes 
-	// Deslocamento a partir do byte zero 
 	
 	//Atributo posição (x, y, z)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
@@ -560,8 +599,6 @@ int setupGeometry()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3*sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
-	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
-	// atualmente vinculado - para que depois possamos desvincular com segurança
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
@@ -745,13 +782,6 @@ int setupGroundGeometry()
 	// e os ponteiros para os atributos 
 	glBindVertexArray(VAO);
 
-	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
-	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
-	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
-	// Tipo do dado
-	// Se está normalizado (entre zero e um)
-	// Tamanho em bytes 
-	// Deslocamento a partir do byte zero 
 
 	//Atributo posição (x, y, z)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
@@ -789,6 +819,3 @@ void drawCursor(Shader* shader)
 
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 }
-
-
-
