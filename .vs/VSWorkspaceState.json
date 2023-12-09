@@ -2,6 +2,10 @@
   "ExpandedNodes": [
     ""
   ],
+<<<<<<< HEAD
   "SelectedNode": "\\Hello3D - Pyramid.sln (Hello3D - Voxels\\Hello3D - Pyramid.sln)",
+=======
+  "SelectedNode": "\\HelloTriangle.sln (HelloTriangle\\Bubbles\\HelloTriangle.sln)",
+>>>>>>> d3be676c5a941490994ba615c315eef8ceaff9b3
   "PreviewInSolutionExplorer": false
 }
